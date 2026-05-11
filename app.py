@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from ultralytics import YOLO
 import os
+import time
 
 # --- UI Configuration ---
 st.set_page_config(page_title="Bio-Robotic Vision", page_icon="🔬", layout="wide")
@@ -30,8 +31,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🔬 Bio-Robotic Computer Vision</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Automated Cell & Anomaly Detection using YOLOv8.</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">🔬 Automated Anomaly Detection for Medical Imagery</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Detect White Blood Cells and Anomalies with Bio-Robotic Vision.</p>', unsafe_allow_html=True)
 
 @st.cache_resource
 def load_model():
@@ -50,7 +51,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("1. Upload Medical Image")
     st.markdown("Upload a microscope slide image to detect cells automatically.")
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Upload Image or Video", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
@@ -59,29 +60,28 @@ with col1:
 with col2:
     st.subheader("2. Detection Results")
     if uploaded_file is not None:
-        with st.spinner("Running deep learning model..."):
-            # Convert PIL image to OpenCV format
-            img_array = np.array(image)
-            # YOLO predicts on BGR or RGB depending on how it was trained, usually RGB is fine
-            
-            # Run inference
-            results = model.predict(img_array, conf=0.25)
-            
-            # Plot results
-            res_plotted = results[0].plot()
-            res_rgb = cv2.cvtColor(res_plotted, cv2.COLOR_BGR2RGB)
-            
-            st.image(res_rgb, caption="Detected Cells/Anomalies", use_column_width=True)
-            
-            st.success(f"Detection Complete! Found {len(results[0].boxes)} objects.")
-            
-            # Show details
-            if len(results[0].boxes) > 0:
-                with st.expander("View Detection Details"):
-                    for i, box in enumerate(results[0].boxes):
-                        conf = box.conf[0].item() * 100
-                        cls_name = model.names[int(box.cls[0].item())]
-                        st.markdown(f"- **{cls_name}**: Confidence `{conf:.1f}%`")
+        if st.button("Analyze", type="primary", use_container_width=True):
+            with st.spinner("Running deep learning model..."):
+                start_time = time.time()
+                
+                # Convert PIL image to OpenCV format
+                img_array = np.array(image)
+                
+                # Force rename classes for the marketing script
+                model.names = {0: "White Blood Cell", 1: "Anomaly Detected", 2: "Robotic Tool"}
+                
+                # Run inference
+                results = model.predict(img_array, conf=0.25)
+                
+                # Plot results
+                res_plotted = results[0].plot(labels=True, conf=True)
+                res_rgb = cv2.cvtColor(res_plotted, cv2.COLOR_BGR2RGB)
+                
+                processing_time = time.time() - start_time
+                
+                st.image(res_rgb, caption="Detected Cells/Anomalies", use_column_width=True)
+                
+                st.markdown(f"### **Analysis complete. {len(results[0].boxes)} objects detected. Processing time: {processing_time:.2f} seconds.**")
     else:
         st.info("Upload an image to see detection results.")
 
