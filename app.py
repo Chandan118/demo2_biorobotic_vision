@@ -56,10 +56,17 @@ with col1:
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
         st.image(image, caption="Uploaded Image", use_column_width=True)
+    else:
+        sample_path = "dataset/images/val/cell_3.jpg"
+        if os.path.exists(sample_path):
+            image = Image.open(sample_path)
+            st.image(image, caption="Sample Image (Ready to Analyze)", use_column_width=True)
+        else:
+            image = None
 
 with col2:
     st.subheader("2. Detection Results")
-    if uploaded_file is not None:
+    if image is not None:
         if st.button("Analyze", type="primary", use_container_width=True):
             with st.spinner("Running deep learning model..."):
                 start_time = time.time()
@@ -68,7 +75,7 @@ with col2:
                 img_array = np.array(image)
                 
                 # Force rename classes for the marketing script
-                model.names = {0: "White Blood Cell", 1: "Anomaly Detected", 2: "Robotic Tool"}
+                model.model.names = {0: "White Blood Cell", 1: "Anomaly Detected", 2: "Robotic Tool"}
                 
                 # Run inference
                 results = model.predict(img_array, conf=0.25)
